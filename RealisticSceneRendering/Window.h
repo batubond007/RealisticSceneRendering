@@ -9,6 +9,7 @@
 class Window 
 {
 public:
+	static Window* windowObj;
 	static int width;
 	static int height;
 	static int major;
