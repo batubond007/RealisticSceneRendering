@@ -5,9 +5,9 @@
 
 #include "SceneObject.h"
 #include "Window.h"
-#include "WaterRenderer.h"
 #include "Camera.h"
 #include "InputController.h"
+#include "CameraMovementController.h"
 
 using namespace std;
 
@@ -18,6 +18,7 @@ public:
 		Start();
 		while (!Window::windowObj->WindowShouldClose())
 		{
+			ClearBits();
 			Update();
 			Window::windowObj->SwapBuffers();
 			Window::windowObj->PollEvents();
@@ -36,7 +37,8 @@ private:
 	void Initialize() {
 		InitializeWindow();
 		Camera::cam = new Camera();
-		InputController inputController;
+		InputController::SetCallbacks();
+		CameraMovementController* cameraController = new CameraMovementController();
 	}
 
 	void Start() {
@@ -51,5 +53,12 @@ private:
 		{
 			SceneObject::sceneObjects[i]->Update();
 		}
+	}
+
+	void ClearBits() {
+		glClearColor(0, 0, 0, 1);
+		glClearDepth(1.0f);
+		glClearStencil(0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 };

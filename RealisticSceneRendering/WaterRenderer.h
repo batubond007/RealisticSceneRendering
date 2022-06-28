@@ -13,10 +13,15 @@ public:
 	}
 
 	void Update() {
-		SceneObject::Update();
+		//SceneObject::Update();
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LEQUAL);
+		glDepthRange(0.0f, 1.0f);
 
 		glm::mat4 modelingMatrix = glm::mat4(1);
-		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-1, -1, -5));
+		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-25, 0, -25));
+		modelingMatrix = glm::scale(modelingMatrix, glm::vec3(50, 50, 50));
 
 		waterShader->use();
 		waterShader->setMat4("projectionMatrix", Camera::cam->GetProjectionMatrix());

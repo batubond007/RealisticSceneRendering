@@ -75,6 +75,12 @@ public:
 		glfwSetKeyCallback(window, keyboard);
 	}
 
+	// Sets Mouse Callback
+	void SetMouseCallback(GLFWcursorposfun mouse) {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetCursorPosCallback(window, mouse);
+	}
+
 	// Checks if window is closed
 	bool WindowShouldClose() {
 		return glfwWindowShouldClose(window);
