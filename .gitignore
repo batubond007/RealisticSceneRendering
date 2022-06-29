@@ -38,3 +38,15 @@ x64/Debug/RealisticSceneRendering.pdb
 .vs/RealisticSceneRendering/FileContentIndex/f862edbc-8cb0-441b-8ac8-ebad0d8d4cb6.vsidx
 .vs/RealisticSceneRendering/FileContentIndex/3412ca7a-b4c7-4028-ad6a-8b8720811879.vsidx
 .vs/RealisticSceneRendering/FileContentIndex/329bbbc5-817a-4969-b9c6-f82a00b4a54c.vsidx
+*.vsidx
+*.db
+*.ipch
+*.vcxproj
+*.vcxproj
+*.obj
+*.filters
+*.vcxproj
+*.tlog
+*.idb
+*.pdb
+*.exe
