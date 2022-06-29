@@ -10,7 +10,7 @@ void SceneObject::Start()
 
 void SceneObject::Update()
 {
-	std::cout << "Updated" << std::endl;
+	//std::cout << "Updated" << std::endl;
 }
 
 SceneObject::SceneObject()
