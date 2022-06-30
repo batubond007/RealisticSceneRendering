@@ -309,8 +309,5 @@ vec4 stackable3DNoise(ivec3 pixel)
 void main()
 {
     ivec3 pixel = ivec3(gl_GlobalInvocationID.xyz);
-
-	//imageStore (outNoise, pixel, vec4(gl_GlobalInvocationID.xyz, 1.0f));
-
 	imageStore (outNoise, pixel, stackable3DNoise(pixel));
 }

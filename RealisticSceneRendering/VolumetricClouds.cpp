@@ -143,6 +143,8 @@ void VolumetricClouds::SetUniforms()
 	glUniform1f(uHighFreqNoiseUVScale, highFrequencyNoiseUVScale);
 	glUniform1f(uHighFreqNoiseHScale, highFrequencyNoiseHScale);
 
+	glUniform1f(uCloudType, cloudType);
+	glUniform1f(uCoverageMultiplier, coverageMultiplier);
 }
 Mesh* VolumetricClouds::createQuad() {
 

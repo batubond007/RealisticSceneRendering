@@ -46,11 +46,17 @@ float FOV = 45.0f;
 void cloudRaymarch(vec3 startPos, vec3 endPos, out vec4 color);
 float sampleDensity(vec3 pos, float heightFraction);
 
+
+// Cloud types height density gradients
+#define STRATUS_GRADIENT vec4(0.0, 0.1, 0.2, 0.3)
+#define STRATOCUMULUS_GRADIENT vec4(0.02, 0.2, 0.48, 0.625)
+#define CUMULUS_GRADIENT vec4(0.00, 0.1625, 0.88, 0.98)
+
 // Utility
 bool intersectSphere(vec3 o, vec3 d, out vec3 minT, out vec3 maxT);
 vec2 sphericalUVProj(vec3 p, vec3 center);
 float remap(const float val, const float currMin, const float currMax, const float newMin, const float newMax);
-float densityHeightGradient(const float heightFrac);
+float getDensityForCloud(float heightFraction, float cloudType);
 
 void main(void)
 {
@@ -100,7 +106,7 @@ vec2 sphericalUVProj(vec3 p, vec3 center)
 	return (dirVector.xz + 1.0) / 2.0; // remap to [0,1] range for uv
 }
 
-int marchStepCount = 12;
+int marchStepCount = 64;
 void cloudRaymarch(vec3 startPos, vec3 endPos, out vec4 color)
 {
 	vec3 path = endPos - startPos;
@@ -124,24 +130,26 @@ void cloudRaymarch(vec3 startPos, vec3 endPos, out vec4 color)
 		if(sampledDensity > 0.01)
 		{
 			// TODO calculate color via light raymarching
-			vec3 sampledColor = vec3(0.55, 0.7, 0.7);
+			vec3 sampledColor = vec3(0.90, 0.95, 0.1);
 			vec4 c = vec4(sampledColor * finalColor.w, sampledDensity);
 
 			//finalColor.xyz += c.xyz;
 			//finalColor.w = (1.0 - sampledDensity) * finalColor.w;
-
 			finalColor = (1.0 - finalColor.a) * c + finalColor;
-
-			if(finalColor.a >= 0.95) // EARLY EXIT ON FULL OPACITY
-				break;
-
 		}
-		if(1.0 - finalColor.w > 0.95f)
+		else
 		{
-			// no point sampling after reaching full opaque, early exit.
-			//break;
-		}
+			
+			// TODO calculate color via light raymarching
+			vec3 sampledColor = vec3(0.2, 0.75, 0.8);
+			vec4 c = vec4(sampledColor * 0.25f, 0.4f);
 
+			//finalColor.xyz += c.xyz;
+			//finalColor.w = (1.0 - sampledDensity) * finalColor.w;
+			finalColor = (1.0 - finalColor.a) * c + finalColor;
+		}
+		if(finalColor.a >= 0.95) // EARLY EXIT ON FULL OPACITY
+			break;
 		currPos += dir * stepSize;
 	}
 	//finalColor.w = 1.0 - finalColor.w;
@@ -159,7 +167,44 @@ float sampleDensity(vec3 pos, float heightFraction)
 	float lowFreqFBM = (baseNoise.g * 0.625) + (baseNoise.b * 0.25) + (baseNoise.a * 0.125);
 	float baseShape = remap(baseNoise.r, -(1.0 - lowFreqFBM), 1.0, 0.0, 1.0);
 
-	return baseShape;
+	//return baseShape;
+	
+	// Apply density gradient based on cloud type
+	float densityGradient = getDensityForCloud(heightFraction, cloudType);
+
+	baseShape *= densityGradient;
+
+	// Apply coverage
+	float coverage = clamp(0.18f, 0.0, 1.0) * coverageMultiplier;
+	//float coverage = 0.5f;
+	// Make sure cloud with less density than actual coverage dissapears
+	float coveragedCloud = remap(baseShape, coverage, 1.0, 0.0, 1.0);
+	coveragedCloud *= coverage;
+	//coveragedCloud *= mix(1.0, 0.0, clamp(heightFraction / coverage, 0.0, 1.0));
+
+	float finalCloud = coveragedCloud;
+	return clamp(finalCloud, 0.0, 1.0);
+}
+
+
+// Utility function that maps a value from one range to another. SIGGRAPH 2017 Nubis-Decima
+float remap(const float val, const float currMin, const float currMax, const float newMin, const float newMax)
+{
+	float currFrac = ((val - currMin) / (currMax - currMin));
+	return newMin + (currFrac * (newMax - newMin));
+}
+
+// Retrieves the cloud density based on cloud type and weighting between default cloud models
+float getDensityForCloud(float heightFraction, float type)
+{
+	float stratusFactor = 1.0 - clamp(type * 2.0, 0.0, 1.0);
+	float stratoCumulusFactor = 1.0 - abs(type - 0.5) * 2.0;
+	float cumulusFactor = clamp(type - 0.5, 0.0, 1.0) * 2.0;
+
+	vec4 baseGradient = stratusFactor * STRATUS_GRADIENT + stratoCumulusFactor * STRATOCUMULUS_GRADIENT + cumulusFactor * CUMULUS_GRADIENT;
+
+	float result = remap(heightFraction, baseGradient.x, baseGradient.y, 0.1, 1.0) * remap(heightFraction, baseGradient.z, baseGradient.w, 1.0, 0.1);
+	return 0.35f;
 }
 // ==========================================================================
 // Find Raymarch start-end point by intersecting with atmosphere lower&upper bound spheres
@@ -221,17 +266,4 @@ bool intersectSphere(vec3 o, vec3 d, out vec3 minT, out vec3 maxT)
 	maxT = o + d * maxSol;
 
 	return true;
-}
-
-// Utility function that maps a value from one range to another. SIGGRAPH 2017 Nubis-Decima
-float remap(const float val, const float currMin, const float currMax, const float newMin, const float newMax)
-{
-	float currFrac = ((val - currMin) / (currMax - currMin));
-	return newMin + (currFrac * (newMax - newMin));
-}
-
-float densityHeightGradient(const float heightFrac) {
-
-	vec4 cloudGradient = vec4(0.02f, 0.4f, 0.68f, 0.925f);
-	return smoothstep(cloudGradient.x, cloudGradient.y, heightFrac) - smoothstep(cloudGradient.z, cloudGradient.w, heightFrac);
 }
