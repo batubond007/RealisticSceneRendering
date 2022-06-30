@@ -28,6 +28,7 @@ public:
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
         try
         {
             // open files
@@ -81,12 +82,15 @@ public:
             glCompileShader(geometry);
             checkCompileErrors(geometry, "GEOMETRY");
         }
+
+
         // shader Program
         ID = glCreateProgram();
         glAttachShader(ID, vertex);
         glAttachShader(ID, fragment);
         if (geometryPath != nullptr)
             glAttachShader(ID, geometry);
+        
         glLinkProgram(ID);
         checkCompileErrors(ID, "PROGRAM");
         // delete the shaders as they're linked into our program now and no longer necessery
@@ -95,6 +99,46 @@ public:
         if (geometryPath != nullptr)
             glDeleteShader(geometry);
 
+    }
+
+    Shader(const char* computePath)
+    {
+
+        std::ifstream cShaderFile;
+        cShaderFile.open(computePath);
+
+        std::stringstream cShaderStream;
+        cShaderStream << cShaderFile.rdbuf();
+        cShaderFile.close();
+        std::string computeCode = cShaderStream.str();
+
+        const char* cShaderCode = computeCode.c_str();
+        GLuint compute = glCreateShader(GL_COMPUTE_SHADER);
+        glShaderSource(compute, 1, &cShaderCode, NULL);
+        glCompileShader(compute);
+        checkCompileErrors(compute, "COMPUTE");
+         // shader Program
+        GLuint perlinworleyShaderID = glCreateProgram();
+        glAttachShader(perlinworleyShaderID, compute);
+        glLinkProgram(perlinworleyShaderID);
+
+        int linked;
+        glGetProgramiv(perlinworleyShaderID, GL_LINK_STATUS, &linked);
+        if (!linked)
+        {
+            GLint logLen;
+            glGetProgramiv(perlinworleyShaderID, GL_INFO_LOG_LENGTH, &logLen);
+            char* logString = new char[logLen];
+            glGetProgramInfoLog(perlinworleyShaderID, logLen, NULL, logString);
+            std::cout << "Error: " << logString << std::endl;
+            delete[] logString;
+            exit(-1);
+        }
+
+        ID = perlinworleyShaderID;
+
+        // delete the shaders as they're linked into our program now and no longer necessery
+        //glDeleteShader(compute);
     }
     // activate the shader
     // ------------------------------------------------------------------------
@@ -111,6 +155,11 @@ public:
     // ------------------------------------------------------------------------
     void setInt(const std::string& name, int value) const
     {
+        int loc = glGetUniformLocation(ID, name.c_str());
+        if (loc >= 0) 
+        {
+            //std::cout <<name<< " at loc:" << loc << std::endl;s
+        }
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
     // ------------------------------------------------------------------------
@@ -160,7 +209,12 @@ public:
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
-
+    void setSampler3D(const std::string& name, unsigned int texture, int id) const
+    {
+        glActiveTexture(GL_TEXTURE0 + id);
+        glBindTexture(GL_TEXTURE_3D, texture);
+        this->setInt(name, id);
+    }
 private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------

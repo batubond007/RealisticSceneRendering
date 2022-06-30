@@ -75,7 +75,8 @@ public:
     // returns projection matrix using perspective projection
     glm::mat4 GetProjectionMatrix() {
         float fovyRad = (float)(45.0 / 180.0) * M_PI;
-        return glm::perspective(fovyRad, 1.0f, 1.0f, 100.0f);
+        float aspectRatio = 1920.0f / 1080.0f;
+        return glm::perspective(fovyRad, aspectRatio, 1.0f, 100000.0f);
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
