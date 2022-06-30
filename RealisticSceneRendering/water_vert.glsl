@@ -8,8 +8,13 @@ uniform mat4 modelingMatrix;
 uniform mat4 viewingMatrix;
 uniform mat4 projectionMatrix;
 
+uniform sampler2D refractionTex;
+
+out vec4 col;
+
 void main(void)
 {
+    col = texture(refractionTex, inVertex.xy);
     gl_Position = projectionMatrix * viewingMatrix * modelingMatrix * vec4(inVertex, 1);
 }
 
