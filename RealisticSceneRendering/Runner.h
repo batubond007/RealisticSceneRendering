@@ -24,6 +24,9 @@ public:
 			Window::windowObj->PollEvents();
 		}
 	}
+	static void DrawScene();
+	static void DrawSceneWOWater();
+	static void ClearBits();
 private:
 	void InitializeWindow() {
 		Window::windowObj = new Window(1920, 1080, "Realistic Scene Rendering");
@@ -50,16 +53,6 @@ private:
 	}
 
 	void Update() {
-		for (int i = 0; i < SceneObject::sceneObjects.size(); i++)
-		{
-			SceneObject::sceneObjects[i]->Update();
-		}
-	}
-
-	void ClearBits() {
-		glClearColor(0, 0, 0, 1);
-		glClearDepth(1.0f);
-		glClearStencil(0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		DrawScene();
 	}
 };

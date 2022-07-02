@@ -209,6 +209,13 @@ public:
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
+    // ------------------------------------------------------------------------
+    void setSampler2D(const std::string& name, GLuint texture, int index) {
+        glActiveTexture(GL_TEXTURE0 + index);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        this->setInt(name, index);
+    }
+    // ------------------------------------------------------------------------
     void setSampler3D(const std::string& name, unsigned int texture, int id) const
     {
         glActiveTexture(GL_TEXTURE0 + id);

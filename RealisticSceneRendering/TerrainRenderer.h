@@ -27,7 +27,6 @@ public:
 
 	void Update() {
 		//SceneObject::Update();
-
 		terrainShader->use();
 		terrainShader->setMat4("viewingMatrix", Camera::cam->GetViewMatrix());
 		terrain->Draw(*terrainShader);

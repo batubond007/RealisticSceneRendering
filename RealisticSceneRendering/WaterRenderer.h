@@ -25,22 +25,24 @@ public:
 		glm::mat4 modelingMatrix = glm::mat4(1);
 		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-25, 0, -25));
 		modelingMatrix = glm::scale(modelingMatrix, glm::vec3(50, 50, 50));
-
+		
 		// Create reflection Attachments
-		GLuint reflectionFrameBuffer = createFrameBuffer();
-		GLuint reflectionTexture = createTextureAttachment(320, 180);
-		GLuint reflectionDepthBuffer = createDepthBufferAttachment(320, 180);
-		unbindFrameBuffer();
-
+		//GLuint reflectionFrameBuffer = createFrameBuffer();
+		//GLuint reflectionTexture = createTextureAttachment(320, 180);
+		//GLuint reflectionDepthBuffer = createDepthBufferAttachment(320, 180);
+		//unbindFrameBuffer();
+		
 		// Create refraction Attachments
 		GLuint refractionFrameBuffer = createFrameBuffer();
 		GLuint refractionTexture = createTextureAttachment(1920, 1080);
-		GLuint refractionDepthTexture = createDepthTextureAttachment(1920, 1080);
-		unbindFrameBuffer();
+		//GLuint refractionDepthTexture = createDepthTextureAttachment(1920, 1080);
+		//unbindFrameBuffer();
 
-		bindFrameBuffer(refractionFrameBuffer, 1920, 1080);
+		//bindFrameBuffer(refractionFrameBuffer, 1920, 1080);
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
 		Runner::DrawSceneWOWater();
-		unbindFrameBuffer();
+		//unbindFrameBuffer();
 
 		waterShader->use();
 		// Set Uniforms
@@ -48,15 +50,16 @@ public:
 		waterShader->setMat4("viewingMatrix", Camera::cam->GetViewMatrix());
 		waterShader->setMat4("modelingMatrix", modelingMatrix);
 		waterShader->setSampler2D("refractionTex", refractionTexture, 0);
-		quad->Draw(*waterShader);
+		//quad->Draw(*waterShader);
 
-		
+		/*
 		glDeleteFramebuffers(1, &reflectionFrameBuffer);
 		glDeleteTextures(1, &reflectionTexture);
 		glDeleteRenderbuffers(1, &reflectionDepthBuffer);
+		*/
 		glDeleteFramebuffers(1, &refractionFrameBuffer);
 		glDeleteTextures(1, &refractionTexture);
-		glDeleteTextures(1, &refractionDepthTexture);
+		//glDeleteTextures(1, &refractionDepthTexture);
 
 	}
 
@@ -105,7 +108,7 @@ private:
 		glGenTextures(1, &texture);
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height,
-			0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+			0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
