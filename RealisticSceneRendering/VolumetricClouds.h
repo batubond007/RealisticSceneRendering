@@ -19,7 +19,7 @@ private:
 	Shader* cloudShader;
 	Mesh* createQuad();
 	GLuint worleyTex, perlinTex, weatherTex;
-	GLuint perlinWorleyComputeID;
+	GLuint perlinWorleyComputeID, worleyComputeID;
 
 	// uniform locations
 	GLuint uSphereCenter;
@@ -36,7 +36,10 @@ private:
 	GLuint uCloudColor;
 	GLuint uCloudType;
 	GLuint uCoverageMultiplier;
-
+	GLuint uLightColor;
+	GLuint uLightFactor;
+	GLuint uZenitColor;
+	GLuint uHorizonColor;
 	GLuint uInvView;
 	GLuint uProjView;
 };
