@@ -13,11 +13,15 @@ using namespace std;
 
 class Runner {
 public:
+	static float DeltaTime;
+	static double TotalTimeInSeconds;
+
 	void run() {
 		Initialize();
 		Start();
 		while (!Window::windowObj->WindowShouldClose())
 		{
+			HandleTime();
 			ClearBits();
 			Update();
 			Window::windowObj->SwapBuffers();
@@ -28,6 +32,8 @@ public:
 	static void DrawSceneWOWater();
 	static void ClearBits();
 private:
+	float lastTime;
+
 	void InitializeWindow() {
 		Window::windowObj = new Window(1920, 1080, "Realistic Scene Rendering");
 		if (Window::windowObj->Initialize() == EXIT_FAILURE)
@@ -54,5 +60,12 @@ private:
 
 	void Update() {
 		DrawScene();
+	}
+
+	void HandleTime() {
+		DeltaTime = glfwGetTime() - lastTime;
+		TotalTimeInSeconds = glfwGetTime();
+
+		lastTime = glfwGetTime();
 	}
 };

@@ -17,13 +17,13 @@ class CameraMovementController : SceneObject {
 		{
 			Camera::cam->ProcessKeyboard(BACKWARD, .2f);
 		}
-		if (InputController::yawChange != 0)
-		{
-			Camera::cam->ProcessMouseMovement(InputController::yawChange, 0);
-		}
 		if (InputController::pitchChange != 0)
 		{
-			Camera::cam->ProcessMouseMovement(0, InputController::pitchChange);
+			Camera::cam->ProcessMouseMovement(InputController::pitchChange, 0);
+		}
+		if (InputController::yawChange != 0)
+		{
+			Camera::cam->ProcessMouseMovement(0, InputController::yawChange);
 		}
 		
 	}

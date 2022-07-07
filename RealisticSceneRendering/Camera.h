@@ -21,8 +21,8 @@ enum Camera_Movement {
 
 // Default camera values
 const float YAW = -90.0f;
-const float PITCH = 0.0f;
-const float SPEED = 2.5f;
+const float PITCH = -30.0f;
+const float SPEED = 200.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
@@ -48,7 +48,7 @@ public:
     float Zoom;
 
     // constructor with vectors
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(0.0f, 5.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = position;
         WorldUp = up;
@@ -99,18 +99,9 @@ public:
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Yaw += xoffset;
-        Pitch += yoffset;
-
-        // make sure that when pitch is out of bounds, screen doesn't get flipped
-        if (constrainPitch)
-        {
-            if (Pitch > 89.0f)
-                Pitch = 89.0f;
-            if (Pitch < -89.0f)
-                Pitch = -89.0f;
-        }
-
+        Pitch += xoffset;
+        Yaw += yoffset;
+        
         // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
     }
@@ -125,15 +116,29 @@ public:
             Zoom = 45.0f;
     }
 
+    void InvertCam() {
+        dist = 2 * Camera::cam->Position.y;
+        Camera::cam->Position.y -= dist;
+        Camera::cam->Pitch = -Camera::cam->Pitch;
+        updateCameraVectors();
+    }
+    void RecoverCam() {
+        Camera::cam->Position.y += dist;
+        Camera::cam->Pitch = -Camera::cam->Pitch;
+        updateCameraVectors();
+    }
+
 private:
+    float dist;
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
         // calculate the new Front vector
         glm::vec3 front;
-        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.x = cos(glm::radians(Pitch)) * cos(glm::radians(Yaw));
         front.y = sin(glm::radians(Pitch));
         front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+
         Front = glm::normalize(front);
         // also re-calculate the Right and Up vector
         Right = glm::normalize(glm::cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.

@@ -1,4 +1,5 @@
 #include "InputController.h"
+#include "Camera.h"
 
 bool InputController::isMovingForward;
 bool InputController::isMovingBackward;
@@ -9,6 +10,7 @@ float InputController::speed = 5;
 float InputController::lastX;
 float InputController::lastY;
 
+float dist;
 
 
 void InputController::SetCallbacks() {

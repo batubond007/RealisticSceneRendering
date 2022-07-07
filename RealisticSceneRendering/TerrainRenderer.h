@@ -7,6 +7,8 @@
 class TerrainRenderer : public SceneObject
 {
 public:
+	static Shader* terrainShader;
+
 	void Start() {
 		SceneObject::Start();
 		terrain = ObjImport::ParseObj("Mountain.obj");
@@ -16,7 +18,8 @@ public:
 		terrain->textures.push_back(tex);
 
 		glm::mat4 modelingMatrix = glm::mat4(1);
-		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(0, -3, 0));
+		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-50, -20, -50));
+		modelingMatrix = glm::scale(modelingMatrix, glm::vec3(100, 100, 100));
 
 		terrainShader->use();
 		terrainShader->setMat4("projectionMatrix", Camera::cam->GetProjectionMatrix());
@@ -34,5 +37,4 @@ public:
 
 private:
 	Mesh* terrain;
-	Shader* terrainShader;
 };

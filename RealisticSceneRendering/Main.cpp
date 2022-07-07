@@ -4,10 +4,9 @@
 #include "VolumetricClouds.h"
 
 int main() {
-
-	VolumetricClouds* clouds = new VolumetricClouds();
-	//TerrainRenderer *terrain = new TerrainRenderer();
-	WaterRenderer* water = new WaterRenderer();
 	Runner runner;
+	//VolumetricClouds* clouds = new VolumetricClouds();
+	TerrainRenderer *terrain = new TerrainRenderer();
+	WaterRenderer* water = new WaterRenderer();
 	runner.run();
 }

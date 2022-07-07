@@ -1,6 +1,9 @@
 #include "Runner.h"
 #include "WaterRenderer.h"
 
+float Runner::DeltaTime;
+double Runner::TotalTimeInSeconds;
+
 void Runner::DrawScene() {
 	ClearBits();
 	glEnable(GL_DEPTH_TEST);

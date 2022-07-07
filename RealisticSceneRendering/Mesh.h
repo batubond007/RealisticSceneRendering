@@ -45,7 +45,7 @@ struct Texture {
     string type;
     string path;
     
-    Texture(string Type, string path);
+    Texture(string Type, string path, bool includeAlpha = true);
 };
 
 class Mesh {
