@@ -10,23 +10,21 @@ void VolumetricClouds::Start() {
 void VolumetricClouds::generateNoiseTextures()
 {
 	Shader* perlinworleyComp = new Shader("perlinWorleyGen.comp");
-	this->perlinTex = generateTexture3D(128, 128, 128);
 
-	//glBindTexture(GL_TEXTURE_3D, this->perlinTex);
-	//glTexStorage3D(GL_TEXTURE_3D, 6, GL_RGBA8, 128, 128, 128);
-
+	int res = 128;
+	this->perlinTex = generateTexture3D(res, res, res);
 	perlinworleyComp->use();
+
 	std::cout << "computing perlinworley!" << std::endl;
-	//glBindImageTexture(0, this->perlinTex, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA8);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, this->perlinTex);
 	glBindImageTexture(0, this->perlinTex, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA8);
+	glGenerateMipmap(GL_TEXTURE_3D);
 	perlinworleyComp->setInt("outNoise", 0);
 
-	glDispatchCompute(128, 128, 128);
+	glDispatchCompute(res, res, res);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
 
 	glBindTexture(GL_TEXTURE_3D, this->perlinTex);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -35,9 +33,41 @@ void VolumetricClouds::generateNoiseTextures()
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-	std::cout << "computed!!" << std::endl;
-
 	this->perlinWorleyComputeID = perlinworleyComp->ID;
+	std::cout << "computed perlinworley" << std::endl;
+
+	res = 32;
+	Shader* worleyCompute = new Shader("worley.comp");
+	this->worleyTex = generateTexture3D(res, res, res);
+	worleyCompute->use();
+
+	std::cout << "computing Worley" << std::endl;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, this->worleyTex);
+	glBindImageTexture(0, this->worleyTex, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA8);
+	glGenerateMipmap(GL_TEXTURE_3D);
+
+	worleyCompute->setInt("outNoise", 0);
+
+	glDispatchCompute(res, res, res);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	glBindTexture(GL_TEXTURE_3D, this->worleyTex);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	this->worleyComputeID = worleyCompute->ID;
+	std::cout << "computed Worley" << std::endl;
+
+
+
+
+	//glBindTexture(GL_TEXTURE_2D, textureId);
+	//glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, formatType, pixelType, (GLvoid*)data);
 
 }
 
@@ -61,6 +91,10 @@ void VolumetricClouds::Update() {
 	cloudShader->setInt("perlinworley",0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, this->perlinTex);
+
+	//cloudShader->setInt("worley", 1);
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_3D, this->worleyTex);
 
 	//glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -91,6 +125,13 @@ void VolumetricClouds::CacheUniformLocations()
 
 	uProjView = glGetUniformLocation(programID, "projView");
 	uInvView = glGetUniformLocation(programID, "invView");
+
+	uLightDir = glGetUniformLocation(programID, "lightDir");
+	uLightColor = glGetUniformLocation(programID, "realLightColor");
+	uLightFactor = glGetUniformLocation(programID, "lightFactor");
+	uCloudColor = glGetUniformLocation(programID, "cloudColor");
+	uZenitColor = glGetUniformLocation(programID, "zenitColor");
+	uHorizonColor = glGetUniformLocation(programID, "horizonColor");
 }
 
 void VolumetricClouds::SetUniforms() 
@@ -103,12 +144,12 @@ void VolumetricClouds::SetUniforms()
 	//float cloudMaxRenderDistance = 6000000.0f;
 
 	float earthRadius = 31000;
-	float atmosphereStartOffset = 12000;
-	float cloudRange = 3100;
+	float atmosphereStartOffset = 13000;
+	float cloudRange = 4500;
 	float innerSphereRadius = earthRadius + atmosphereStartOffset;
 	float outerSphereRadius = innerSphereRadius + cloudRange;
 	float sphereYOffset = -earthRadius;
-	float cloudMaxRenderDistance = 30000.0f;
+	float cloudMaxRenderDistance = earthRadius + 2500;// innerSphereRadius * 5;
 
 
 	float cloudTopOffset = 0.0f;
@@ -119,7 +160,18 @@ void VolumetricClouds::SetUniforms()
 	float highFrequencyNoiseHScale = 4.0f;
 	glm::vec3 cloudColor = glm::vec3(1, 1, 1);
 
+	glm::vec3 zenitColor = glm::vec3(0.3f, 1.0f, 1.0f);
+	glm::vec3 horizonColor = glm::vec3(0.2f, 0.3f, 1.0f);
 
+	glm::vec3 lightColor = glm::vec3(1, 1, 1);
+	float lightFactor = 1.0f;
+	glm::vec3 realLightColor = glm::vec3(1, 1, 1);
+	glm::vec3 lightDirection = glm::vec3(1, 1, 0.2);
+
+	lightFactor = glm::clamp(glm::dot(glm::vec3(0, 1, 0), glm::normalize(lightDirection)), 0.0f, 1.0f);
+	realLightColor = lightColor;
+	realLightColor.y *= lightFactor * 0.85f;
+	realLightColor.z *= lightFactor * 0.55f;
 	//auto pos = Camera::cam->Position;
 	//cout << "Cam pos: (" <<pos[0] << "," << pos[1] << "," << pos[2] << ")" << endl;
 	glm::vec3 camPos = Camera::cam->Position;
@@ -131,6 +183,14 @@ void VolumetricClouds::SetUniforms()
 	glm::mat4 pV = Camera::cam->GetProjectionMatrix() * Camera::cam->GetViewMatrix();
 	glUniformMatrix4fv(uProjView, 1, GL_FALSE, &(pV[0][0]));
 
+
+	glUniform3fv(uZenitColor, 1,&zenitColor[0]);
+	glUniform3fv(uHorizonColor, 1, &horizonColor[0]);
+
+	glUniform3fv(uLightDir, 1,&glm::normalize(lightDirection)[0]);
+	glUniform3fv(uLightColor, 1, &realLightColor[0]);
+	glUniform1f(uLightFactor, lightFactor);
+	glUniform3fv(uCloudColor, 1, &cloudColor[0]);
 
 	glUniform3fv(uSphereCenter, 1, &spherePos[0]);
 	glUniform1f(uInnerSphereRadius, innerSphereRadius);
@@ -145,6 +205,7 @@ void VolumetricClouds::SetUniforms()
 
 	glUniform1f(uCloudType, cloudType);
 	glUniform1f(uCoverageMultiplier, coverageMultiplier);
+
 }
 Mesh* VolumetricClouds::createQuad() {
 
@@ -159,6 +220,7 @@ Mesh* VolumetricClouds::createQuad() {
 	vector<Texture> textures;
 	return new Mesh(vertices, indices, textures);
 }
+
 
 unsigned int VolumetricClouds::generateTexture3D(int w, int h, int d) {
 	unsigned int tex_output;
@@ -175,7 +237,7 @@ unsigned int VolumetricClouds::generateTexture3D(int w, int h, int d) {
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	//glBindImageTexture(0, tex_output, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-	glTexStorage3D(GL_TEXTURE_3D, 6, GL_RGBA8, 128, 128, 128);
+	glTexStorage3D(GL_TEXTURE_3D, 6, GL_RGBA8, w, h, d);
 
 	return tex_output;
 }
