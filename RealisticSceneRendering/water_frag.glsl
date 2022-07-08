@@ -56,7 +56,7 @@ void main(void)
 	// Fresnel
 	vec3 view = normalize(toEye);
 	float refractiveFactor = dot(view, normal);
-	refractiveFactor = clamp(pow(refractiveFactor, 0.5), 0.0, 1.0);
+	refractiveFactor = clamp(pow(refractiveFactor, 0.8), 0.0, 1.0);
 
 	//Specular
 	vec3 reflectedLight = reflect(normalize(fromLight), normal);
@@ -65,7 +65,7 @@ void main(void)
 	vec3 specularHighlights = vec3(1, 226.0/255, 152.0/255) * specular * reflectivity * clamp(waterDepth / 3, 0.0, 1.0);
 	
 	fragColor = mix(reflectionCol, refractionCol, refractiveFactor);
-	fragColor = mix(fragColor, vec4(0, 0.3, 0.5, 1.0), 0.2) + vec4(specularHighlights, 0.0);
+	fragColor = mix(fragColor, vec4(0, 0.3, 0.5, 1.0), 0.4) + vec4(specularHighlights, 0.0);
 
 	//Smooth Edges
 	fragColor.a = clamp(waterDepth / 1.5, 0.0, 1.0);

@@ -22,8 +22,11 @@ public:
 	void Update() {
 		// Calculate Matrices
 		glm::mat4 modelingMatrix = glm::mat4(1);
-		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-5000, -2000, -5000));
-		modelingMatrix = glm::scale(modelingMatrix, glm::vec3(10000, 10000, 10000));
+
+		float scale = 10000;
+		float yoffset = -1000;
+		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-scale/2, yoffset, -scale/2));
+		modelingMatrix = glm::scale(modelingMatrix, glm::vec3(scale, scale, scale));
 
 		//Add Time to MoveFactor
 		MoveFactor += WaveSpeed * Runner::DeltaTime;
@@ -44,7 +47,7 @@ public:
 		glEnable(GL_CLIP_DISTANCE0);
 		//Render refraction
 		bindFrameBuffer(refractionFrameBuffer, 1920, 1080);
-		TerrainRenderer::terrainShader->setVec4("clipPlane", glm::vec4(0, -1, 0, -2000));
+		TerrainRenderer::terrainShader->setVec4("clipPlane", glm::vec4(0, -1, 0, yoffset));
 		Runner::DrawSceneWOWater();
 		unbindFrameBuffer();
 
@@ -52,7 +55,7 @@ public:
 		Camera::cam->InvertCam();
 
 		bindFrameBuffer(reflectionFrameBuffer, 1920, 1080);
-		TerrainRenderer::terrainShader->setVec4("clipPlane", glm::vec4(0, 1, 0, -1999.9f));
+		TerrainRenderer::terrainShader->setVec4("clipPlane", glm::vec4(0, 1, 0, yoffset + 0.1));
 		Runner::DrawSceneWOWater();
 		unbindFrameBuffer();
 

@@ -22,7 +22,7 @@ enum Camera_Movement {
 // Default camera values
 const float YAW = -90.0f;
 const float PITCH = -30.0f;
-const float SPEED = 200.0f;
+const float SPEED = 50.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
@@ -48,7 +48,7 @@ public:
     float Zoom;
 
     // constructor with vectors
-    Camera(glm::vec3 position = glm::vec3(0.0f, 5.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(800.0f, 50.0f, 800.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
         Position = position;
         WorldUp = up;
@@ -99,9 +99,14 @@ public:
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Pitch += xoffset;
-        Yaw += yoffset;
-        
+        Yaw += xoffset;
+        Pitch += yoffset;
+
+        if (Pitch > 89.0f)
+            Pitch = 89.0f;
+        if (Pitch < -89.0f)
+            Pitch = -89.0f;
+
         // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
     }
@@ -117,7 +122,7 @@ public:
     }
 
     void InvertCam() {
-        dist = 2 * Camera::cam->Position.y;
+        dist = 2 * (Camera::cam->Position.y + 1000);
         Camera::cam->Position.y -= dist;
         Camera::cam->Pitch = -Camera::cam->Pitch;
         updateCameraVectors();

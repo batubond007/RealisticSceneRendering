@@ -8,6 +8,7 @@ void VolumetricClouds::Start() {
 	SceneObject::Start();
 	quad = createQuad();
 	cloudShader = new Shader("cloud_vert.glsl", "cloud_frag.glsl",nullptr);
+	cloudShader->setVec3("camPos", Camera::cam->Position);
 
 	CacheUniformLocations();
 	generateNoiseTextures();
@@ -73,15 +74,10 @@ void VolumetricClouds::generateNoiseTextures()
 void VolumetricClouds::Update() {
 	SceneObject::Update();
 
-	glm::mat4 modelingMatrix = glm::mat4(1);
-	//modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-1, -1, -5));
-
 	cloudShader->use();
 	cloudShader->setMat4("projectionMatrix", Camera::cam->GetProjectionMatrix());
 	cloudShader->setMat4("viewingMatrix", Camera::cam->GetViewMatrix());
-	cloudShader->setMat4("modelingMatrix", modelingMatrix);
 	cloudShader->setMat4("MVP", Camera::cam->GetProjectionMatrix() * Camera::cam->GetViewMatrix());
-	cloudShader->setVec3("camPos", Camera::cam->Position);
 	
 
 	SetUniforms();
@@ -94,13 +90,9 @@ void VolumetricClouds::Update() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_3D, this->worleyTex);*/
 
-	//glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
-	//cout << "CLOUDS draw" << endl;
 	quad->Draw(*cloudShader);
 	glDepthMask(GL_TRUE);
-	//glEnable(GL_DEPTH_TEST);
-
 }
 
 void VolumetricClouds::CacheUniformLocations()
@@ -110,15 +102,8 @@ void VolumetricClouds::CacheUniformLocations()
 	uInnerSphereRadius = glGetUniformLocation(programID, "innerSphereRadius");
 	uOuterSphereRadius = glGetUniformLocation(programID, "outerSphereRadius");
 	uLightDir = glGetUniformLocation(programID, "lightDir");
-	uCloudType = glGetUniformLocation(programID, "cloudType");
 	uCoverageMultiplier = glGetUniformLocation(programID, "coverageMultiplier");
 
-	uTopOffset = glGetUniformLocation(programID, "cloudTopOffset");
-	uWeatherScale = glGetUniformLocation(programID, "weatherScale");
-	uBaseNoiseScale = glGetUniformLocation(programID, "baseNoiseScale");
-	uHighFreqNoiseScale = glGetUniformLocation(programID, "highFreqNoiseScale");
-	uHighFreqNoiseUVScale = glGetUniformLocation(programID, "highFreqNoiseUVScale");
-	uHighFreqNoiseHScale = glGetUniformLocation(programID, "highFreqNoiseHScale");
 	uMaxDrawDistance = glGetUniformLocation(programID, "maxRenderDist");
 
 	uProjView = glGetUniformLocation(programID, "projView");
@@ -137,19 +122,13 @@ void VolumetricClouds::CacheUniformLocations()
 
 void VolumetricClouds::SetUniforms() 
 {
-	float cloudType = 0.5f;
-	//float innerSphereRadius = 10000000.0f * 2.0;
-	//float outerSphereRadius = 10900000.0f * 2.0;
-	//float sphereYOffset =	 -9600000.0f * 2.0;
-	//float cloudMaxRenderDistance = 6000000.0f;
-
 	float earthRadius = 31000;
 	float atmosphereStartOffset = 13000;
 	float cloudRange = 4500;
 	float innerSphereRadius = earthRadius + atmosphereStartOffset;
 	float outerSphereRadius = innerSphereRadius + cloudRange;
 	float sphereYOffset = -earthRadius;
-	float cloudMaxRenderDistance = earthRadius + 2500;// innerSphereRadius * 5;
+	float cloudMaxRenderDistance = earthRadius + 4500;// innerSphereRadius * 5;
 
 
 	float cloudTopOffset = 0.0f;
@@ -172,10 +151,7 @@ void VolumetricClouds::SetUniforms()
 	realLightColor = lightColor;
 	realLightColor.y *= lightFactor * 0.85f;
 	realLightColor.z *= lightFactor * 0.55f;
-	//auto pos = Camera::cam->Position;
-	//cout << "Cam pos: (" <<pos[0] << "," << pos[1] << "," << pos[2] << ")" << endl;
-	glm::vec3 camPos = Camera::cam->Position;
-	glm::vec4 spherePos = glm::vec4(camPos[0], sphereYOffset, camPos[2], 1.0f);
+	glm::vec4 spherePos = glm::vec4(0, sphereYOffset,0, 1.0f);
 
 	glm::mat4 invView = glm::inverse(Camera::cam->GetViewMatrix());
 	glUniformMatrix4fv(uInvView, 1, GL_FALSE, &(invView[0][0]));
@@ -206,16 +182,6 @@ void VolumetricClouds::SetUniforms()
 	glUniform1f(uInnerSphereRadius, innerSphereRadius);
 	glUniform1f(uOuterSphereRadius, outerSphereRadius);
 	glUniform1f(uMaxDrawDistance, cloudMaxRenderDistance);
-	glUniform1f(uTopOffset, cloudTopOffset);
-	glUniform1f(uWeatherScale, weatherTextureScale);
-	glUniform1f(uBaseNoiseScale, baseNoiseScale);
-	glUniform1f(uHighFreqNoiseScale, highFrequencyNoiseScale);
-	glUniform1f(uHighFreqNoiseUVScale, highFrequencyNoiseUVScale);
-	glUniform1f(uHighFreqNoiseHScale, highFrequencyNoiseHScale);
-
-	glUniform1f(uCloudType, cloudType);
-
-
 	glUniform1f(uCoverageMultiplier, coverageController);
 
 	// set to 0.0 to disable evolution, 1.0 to enable.
@@ -224,11 +190,14 @@ void VolumetricClouds::SetUniforms()
 }
 Mesh* VolumetricClouds::createQuad() {
 
+	// Fullscreen quad in normalized device coordinates.
+	// vert shader should be pass through, no transformations at all.
 	float z = -1.0f;
-	Vertex v1(glm::vec3(-1000, -1000, z),glm::vec3(0,1,0), glm::vec2(0, 0));
-	Vertex v2(glm::vec3(-1000, 1000, z), glm::vec3(0, 1, 0), glm::vec2(1, 0));
-	Vertex v3(glm::vec3(1000, -1000, z), glm::vec3(0, 1, 0), glm::vec2(0,1));
-	Vertex v4(glm::vec3(1000, 1000, z), glm::vec3(0, 1, 0), glm::vec2(1,1));
+	float coords = 1;
+	Vertex v1(glm::vec3(-coords, -coords, z),glm::vec3(0,1,0), glm::vec2(0, 0));
+	Vertex v2(glm::vec3(-coords, coords, z), glm::vec3(0, 1, 0), glm::vec2(1, 0));
+	Vertex v3(glm::vec3(coords, -coords, z), glm::vec3(0, 1, 0), glm::vec2(0,1));
+	Vertex v4(glm::vec3(coords, coords, z), glm::vec3(0, 1, 0), glm::vec2(1,1));
 	vector<Vertex> vertices{ v1, v2, v3, v4 };
 	vector<unsigned int> indices{ 0, 1, 2,
 								 1, 3, 2 };

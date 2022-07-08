@@ -30,15 +30,8 @@ private:
 	GLuint uInnerSphereRadius;
 	GLuint uOuterSphereRadius;
 	GLuint uMaxDrawDistance;
-	GLuint uTopOffset;
-	GLuint uWeatherScale;
-	GLuint uBaseNoiseScale;
-	GLuint uHighFreqNoiseScale;
-	GLuint uHighFreqNoiseUVScale;
-	GLuint uHighFreqNoiseHScale;
 	GLuint uLightDir;
 	GLuint uCloudColor;
-	GLuint uCloudType;
 	GLuint uCoverageMultiplier;
 	GLuint uLightColor;
 	GLuint uLightFactor;

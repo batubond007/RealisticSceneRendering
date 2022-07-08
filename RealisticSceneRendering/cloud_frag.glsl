@@ -19,12 +19,6 @@ uniform vec3 sphereCenter;
 uniform float innerSphereRadius;
 uniform float outerSphereRadius;
 uniform float maxRenderDist;
-uniform float cloudTopOffset;
-uniform float weatherScale;
-uniform float baseNoiseScale;
-uniform float highFreqNoiseScale;
-uniform float highFreqNoiseUVScale;
-uniform float highFreqNoiseHScale;
 
 // ambient & sky lighting
 uniform vec3 lightDir;
@@ -34,7 +28,6 @@ uniform vec3 zenitColor;
 uniform vec3 horizonColor;
 uniform vec3 cloudColor;
 
-uniform float cloudType;
 uniform float coverageMultiplier;
 
 // Cloud evolution
@@ -87,8 +80,8 @@ float lightEnergy(vec3 l, vec3 v, float ca, float coneDensity);
 vec3 ambientLight();
 
 // Ray march configs
-int marchStepCount = 96;
-int lightMarchStepCount = 8;
+int marchStepCount = 64;
+int lightMarchStepCount = 6;
 
 // Random offset added to starting ray depth to prevent banding artifacts 
 #define BAYER_FACTOR 1.0/16.0
@@ -138,6 +131,13 @@ void main(void)
 	}
 }
 
+// Returns an ambient lighting depending on the height
+vec3 ambientLight()
+{
+	vec3 horizonColor = vec3(0.2, 0.4, 0.69);
+	vec3 ambientColor = mix(horizonColor, zenitColor, 0.25);
+	return mix(realLightColor, ambientColor, 0.85) * lightFactor * 1.85;
+}
 vec2 sphericalUVProj(vec3 p, vec3 center)
 {
 	vec3 dirVector = normalize(p - center); // [-1,1] range
@@ -187,15 +187,9 @@ float powder(float density, float ca)
 // Full cloud light energy equation
 float lightEnergy(vec3 l, vec3 v, float ca, float coneDensity)
 {
-	return  7 * beer(coneDensity) * powder(coneDensity, ca) * henyeyGreenstein(l, v, 0.2, ca);
+	return  6.5 * beer(coneDensity) * powder(coneDensity, ca) * henyeyGreenstein(l, v, 0.2, ca);
 }
 
-// Returns an ambient lighting depending on the height
-vec3 ambientLight()
-{
-	vec3 ambientColor = mix(horizonColor, zenitColor, 0.65);
-	return mix(realLightColor, ambientColor, 0.42) * lightFactor * 1.85;
-}
 
 float raymarchToLight(vec3 pos, vec3 dir, float stepSize)
 {
