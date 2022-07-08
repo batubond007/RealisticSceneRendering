@@ -18,7 +18,7 @@ public:
 		terrain->textures.push_back(tex);
 
 		glm::mat4 modelingMatrix = glm::mat4(1);
-		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-50, -20, -50));
+		modelingMatrix = glm::translate(modelingMatrix, glm::vec3(-50, -2020, -50));
 		modelingMatrix = glm::scale(modelingMatrix, glm::vec3(100, 100, 100));
 
 		terrainShader->use();
