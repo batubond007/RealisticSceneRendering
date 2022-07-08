@@ -1,10 +1,11 @@
 #include "InputController.h"
 #include "Camera.h"
+#include "VolumetricClouds.h"
 
 bool InputController::isMovingForward;
 bool InputController::isMovingBackward;
-float InputController::yawChange;
-float InputController::pitchChange;
+float InputController::xoffset;
+float InputController::yoffset;
 float InputController::speed = 5;
 
 float InputController::lastX;
@@ -58,6 +59,27 @@ void InputController::keyCallbackStatic(GLFWwindow* window,
         {
             isMovingBackward = false;
         }
+    } 
+    if (key == GLFW_KEY_L && action == GLFW_RELEASE)
+    {
+        if (VolumetricClouds::evolveClouds > 0.9) {
+
+            VolumetricClouds::evolveClouds = 0.0f;
+        }
+        else {
+            VolumetricClouds::evolveClouds = 1.0f;
+        }
+    }
+    if (key == GLFW_KEY_C && action == GLFW_RELEASE)
+    {
+        if (VolumetricClouds::coverageController < 1.0) {
+
+            VolumetricClouds::coverageController += 0.05f;
+        }
+        else {
+            VolumetricClouds::coverageController = 0.3f;
+
+        }
     }
 }
 
@@ -65,14 +87,15 @@ void InputController::mouseCallbackStatic(GLFWwindow* window, double xpos, doubl
     int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
     if (state == GLFW_PRESS)
     {
-        InputController::yawChange = xpos - lastX;
-        InputController::pitchChange = ypos - lastY;
+        InputController::xoffset = xpos - lastX;
+        InputController::yoffset = ypos - lastY;
     }
-    if (state == GLFW_RELEASE)
-    {
-        InputController::yawChange = 0;
-        InputController::pitchChange = 0;
+    else if(state == GLFW_RELEASE) {
+        InputController::xoffset = 0;
+        InputController::yoffset = 0;
     }
     InputController::lastX = xpos;
     InputController::lastY = ypos;
+
+
 }

@@ -13,6 +13,8 @@ uniform mat4 MVP;
 // Transform ray from view to world space
 uniform mat4 projView;
 uniform mat4 invView;
+uniform mat4 rotation;
+
 uniform vec3 sphereCenter;
 uniform float innerSphereRadius;
 uniform float outerSphereRadius;
@@ -24,13 +26,6 @@ uniform float highFreqNoiseScale;
 uniform float highFreqNoiseUVScale;
 uniform float highFreqNoiseHScale;
 
-
-// Noise textures for cloud shapes and erosion
-//uniform sampler3D worley;
-// weather texture
-//uniform sampler2D weather;
-
-// Light data
 // ambient & sky lighting
 uniform vec3 lightDir;
 uniform vec3 realLightColor;
@@ -39,9 +34,13 @@ uniform vec3 zenitColor;
 uniform vec3 horizonColor;
 uniform vec3 cloudColor;
 
-// Cloud evolution
 uniform float cloudType;
 uniform float coverageMultiplier;
+
+// Cloud evolution
+uniform float time;
+uniform float evolveClouds; // set to 1.0 to enable evolution of clouds. (UV scale animation)
+
 
 // Generated Cloud shape noise texture
 uniform sampler3D perlinworley;
@@ -88,8 +87,8 @@ float lightEnergy(vec3 l, vec3 v, float ca, float coneDensity);
 vec3 ambientLight();
 
 // Ray march configs
-int marchStepCount = 64;
-int lightMarchStepCount = 6;
+int marchStepCount = 96;
+int lightMarchStepCount = 8;
 
 // Random offset added to starting ray depth to prevent banding artifacts 
 #define BAYER_FACTOR 1.0/16.0
@@ -117,19 +116,20 @@ void main(void)
 	bool intersect = intersectSphere(camPos, worldDir, startPos, endPos);
 	
 	//vec4 ambientColor = vec4(0.2, 0.4, 0.69, 1.0);
-	vec4 ambientColor = vec4(ambientLight(), 0.6f);
+	vec4 ambientColor = vec4(ambientLight(), 0.6);
 	
-	vec4 color = vec4(0.0f);
 	if(intersect)
 	{
-		//fragColor = vec4(textureLod(perlinworley,vec3(uv,0.5f), 0)).rgba;
+		vec4 color = vec4(0.0f);
 		cloudRaymarch(startPos, endPos, color);
 
-		color.a = clamp(color.a, 0.0, 1.0);
-
+		//color.a = clamp(color.a, 0.0, 1.0);
 		float alpha = length(startPos - camPos) / maxRenderDist;
 		alpha *= alpha;
 		alpha = clamp(alpha, 0.0, 1.0);
+
+		alpha = remap(alpha, 0.35, 1.0, 0.0, 1.0);
+
 		fragColor = mix(color, ambientColor * lightFactor, alpha);
 	}
 	else
@@ -187,14 +187,14 @@ float powder(float density, float ca)
 // Full cloud light energy equation
 float lightEnergy(vec3 l, vec3 v, float ca, float coneDensity)
 {
-	return 15 * beer(coneDensity) * powder(coneDensity, ca) * henyeyGreenstein(l, v, 0.2, ca);
+	return  7 * beer(coneDensity) * powder(coneDensity, ca) * henyeyGreenstein(l, v, 0.2, ca);
 }
 
 // Returns an ambient lighting depending on the height
 vec3 ambientLight()
 {
-	vec3 ambientColor = mix(horizonColor, zenitColor, 0.15);
-	return mix(realLightColor, ambientColor, 0.65) * lightFactor * 1.85;
+	vec3 ambientColor = mix(horizonColor, zenitColor, 0.65);
+	return mix(realLightColor, ambientColor, 0.42) * lightFactor * 1.85;
 }
 
 float raymarchToLight(vec3 pos, vec3 dir, float stepSize)
@@ -249,14 +249,12 @@ void cloudRaymarch(vec3 startPos, vec3 endPos, out vec4 color)
 
 	vec3 currPos = startPos;
 
-	vec4 finalColor = vec4(0.0);
-	float sampledDensity = 0.0f;
 	
 	// ambient lighting attenuation factor
 	float ambientFactor =  max(min(lightFactor, 1.0), 0.1);
 	// full lighting
 	vec3 light = realLightColor * lightFactor * cloudColor;
-	vec3 ambientL = ambientLight();
+	vec3 ambientL = ambientLight() * ambientFactor;
 
 	float lodAlpha = clamp(length(startPos - camPos) / maxRenderDist, 0.0, 1.0);
 	float samplingLod = mix(0.0, 6.0, lodAlpha);
@@ -265,7 +263,12 @@ void cloudRaymarch(vec3 startPos, vec3 endPos, out vec4 color)
 	int a = int(gl_FragCoord.x) % 4;
 	int b = int(gl_FragCoord.y) % 4;
 	currPos += dir * bayerFilter[a * 4 + b];
+	
+	// Draw sky where there is no cloud (density)
+	vec4 finalColor = vec4(0.25, 0.35, 0.85, 0.0);
 
+	float sampledDensity = 0.0f;
+	bool reset = false;
 	for(int i = 0 ; i < marchStepCount; i++)
 	{
 		// sample density at currPos, fill in alpha val
@@ -273,46 +276,60 @@ void cloudRaymarch(vec3 startPos, vec3 endPos, out vec4 color)
 		float heightFraction = getHeightFraction(currPos);
 
 		sampledDensity = sampleDensity(currPos,finalColor.a, heightFraction, samplingLod);
-		if(sampledDensity > 0.001)
+		if(sampledDensity > 0.0001)
 		{
-			// TODO calculate color via light raymarching
-			//vec3 sampledColor = vec3(0.90, 0.95, 0.1);
-
+			if(!reset){
+				// Overwrite sky if there is density
+				finalColor = vec4(vec3(finalColor), sampledDensity);
+				reset = true;
+			}
 			float lightEnergy = raymarchToLight(currPos, dir, stepSize);
-
-			vec3 sampledColor = vec3(light * lightEnergy + ambientL); 
-			vec4 c = vec4(sampledColor * (sampledDensity), sampledDensity);
+			vec3 sampledColor = vec3(light * lightEnergy + ambientL * 0.85); 
+			vec4 c = vec4(sampledColor * sampledDensity, sampledDensity);
 			finalColor += (1.0 - finalColor.a) * c ;
 		}
-		if(finalColor.a >= 0.95) // EARLY EXIT ON FULL OPACITY
+		if(finalColor.a >= 0.99) // EARLY EXIT ON FULL OPACITY
 			break;
 		currPos += dir * stepSize;
 	}
 	color = finalColor;
 }
 
+
+float baseUVScaleMax = 3.5;
+float baseUVScaleMin = 1.75;
+float baseUVScale = baseUVScaleMin;
+
 float sampleDensity(vec3 pos, float totalDensity, float heightFraction, float lod)
 {
-	// Make clouds evolve with wind
-	//pos += heightFraction * windDirection * cloudTopOffset;
-	//pos += windDirection * time * cloudSpeed;
+	// Rotate UV by time (on CPU)
+	pos = (rotation * vec4(pos,1.0)).xyz;
+
+	heightFraction = getHeightFraction(pos);
 
 	vec2 uv = sphericalUVProj(pos, sphereCenter);
 
+	float incr = 0.0025;
+	float actualIncr = mix(incr, incr*10, evolveClouds);
+
+	float animatedUVScale = baseUVScale + actualIncr * time;
+	if(animatedUVScale > baseUVScaleMax || animatedUVScale < baseUVScaleMin)
+	{
+		// change animation direction
+		incr *= -1;
+	}
+
 	// Sample base cloud shape noises (Perlin-Worley + 3 Worley)
-	vec4 baseNoise = textureLod(perlinworley, vec3(uv, heightFraction), lod);
+	vec4 baseNoise = textureLod(perlinworley, vec3(uv * animatedUVScale, heightFraction) * 1.95, lod);
 	// Build the low frequency fbm modifier
 	float lowFreqFBM = (baseNoise.g * 0.625) + (baseNoise.b * 0.25) + (baseNoise.a * 0.125);
 	float baseShape = remap(baseNoise.r, -(1.0 - lowFreqFBM), 1.0, 0.0, 1.0);
 
-	
-	// Apply density gradient based on cloud type
-	//float densityGradient = getDensityForCloud(heightFraction, cloudType);
+	baseShape *= getDensityForCloud(heightFraction, heightFraction * 0.35);
 
-	baseShape *= getDensityForCloud(heightFraction, heightFraction * 0.7);
-	float coverage = 0.25;
-	//float coverage = 0.5f;
 	// Make sure cloud with less density than actual coverage dissapears
+	float coverage = mix(0.25, 0.28, coverageMultiplier);
+
 	float coveragedCloud = remap(baseShape, coverage, 1.0, 0.0, 1.0);
 	coveragedCloud *= coverage;
 	coveragedCloud *= mix(1.0, 0.0, clamp(heightFraction / coverage, 0.0, 1.0));
@@ -320,18 +337,19 @@ float sampleDensity(vec3 pos, float totalDensity, float heightFraction, float lo
 	float finalCloud = coveragedCloud;
 	
 	// Only erode the cloud if erosion will be visible (low density sampled until now)
-	if(totalDensity < 0.1)
+	if(totalDensity < 0.2)
 	{
 		// Build−high frequency Worley noise FBM.
-		vec3 erodeCloudNoise = textureLod(worley, vec3(uv * 1.3, heightFraction * 0.2) * 1, lod).rgb;
+		vec3 erodeCloudNoise = textureLod(worley, vec3(uv * 1.5, heightFraction * 0.8) * 0.5, lod).rgb;
 		float highFreqFBM = (erodeCloudNoise.r * 0.625) + (erodeCloudNoise.g * 0.25) + (erodeCloudNoise.b * 0.125);
 
-		// Recompute height fraction after applying wind and top offset
-		// heightFraction = getHeightFraction(pos);
+		//vec3 test = (textureLod(perlinworley, vec3(uv, heightFraction), lod).rgb) * 0.1;
+		//float testVal = (test.r * 0.625) + (test.g * 0.25) + (test.b * 0.125);
+		//highFreqFBM -= testVal;
+		//highFreqFBM = remap(highFreqFBM, testVal * 2.52, 1.0, 0, 1.0);
 
 		float highFreqNoiseModifier = mix(highFreqFBM, 1.0 - highFreqFBM, clamp(heightFraction * 8.5, 0.0, 1.0));
-		//coveragedCloud = coveragedCloud - highFreqNoiseModifier * (1.0 - coveragedCloud);
-		finalCloud = remap(coveragedCloud, highFreqNoiseModifier * 0.45, 1.0, 0.0, 1.0);
+		finalCloud = remap(coveragedCloud, highFreqNoiseModifier * 0.53, 1.0, 0, 1.0);
 	}
 	return clamp(finalCloud, 0.0, 1.0);
 }

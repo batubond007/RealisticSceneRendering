@@ -1,4 +1,9 @@
 #include "VolumetricClouds.h"
+#include "Runner.h"
+
+float VolumetricClouds::evolveClouds = 0.0f;
+float VolumetricClouds::coverageController = 0.0f;
+
 void VolumetricClouds::Start() {
 	SceneObject::Start();
 	quad = createQuad();
@@ -36,7 +41,7 @@ void VolumetricClouds::generateNoiseTextures()
 	this->perlinWorleyComputeID = perlinworleyComp->ID;
 	std::cout << "computed perlinworley" << std::endl;
 
-	res = 32;
+	res = 4;
 	Shader* worleyCompute = new Shader("worley.comp");
 	this->worleyTex = generateTexture3D(res, res, res);
 	worleyCompute->use();
@@ -62,13 +67,6 @@ void VolumetricClouds::generateNoiseTextures()
 
 	this->worleyComputeID = worleyCompute->ID;
 	std::cout << "computed Worley" << std::endl;
-
-
-
-
-	//glBindTexture(GL_TEXTURE_2D, textureId);
-	//glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, formatType, pixelType, (GLvoid*)data);
-
 }
 
 
@@ -87,14 +85,14 @@ void VolumetricClouds::Update() {
 	
 
 	SetUniforms();
-
 	cloudShader->setInt("perlinworley",0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, this->perlinTex);
 
-	//cloudShader->setInt("worley", 1);
-	//glActiveTexture(GL_TEXTURE1);
-	//glBindTexture(GL_TEXTURE_3D, this->worleyTex);
+	/*
+	cloudShader->setInt("worley", 1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_3D, this->worleyTex);*/
 
 	//glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
@@ -125,6 +123,9 @@ void VolumetricClouds::CacheUniformLocations()
 
 	uProjView = glGetUniformLocation(programID, "projView");
 	uInvView = glGetUniformLocation(programID, "invView");
+	uTime = glGetUniformLocation(programID, "time");
+	uRotation = glGetUniformLocation(programID, "rotation");
+	uEvolveClouds = glGetUniformLocation(programID, "evolveClouds");
 
 	uLightDir = glGetUniformLocation(programID, "lightDir");
 	uLightColor = glGetUniformLocation(programID, "realLightColor");
@@ -137,7 +138,6 @@ void VolumetricClouds::CacheUniformLocations()
 void VolumetricClouds::SetUniforms() 
 {
 	float cloudType = 0.5f;
-	float coverageMultiplier = 1.0f;
 	//float innerSphereRadius = 10000000.0f * 2.0;
 	//float outerSphereRadius = 10900000.0f * 2.0;
 	//float sphereYOffset =	 -9600000.0f * 2.0;
@@ -160,11 +160,11 @@ void VolumetricClouds::SetUniforms()
 	float highFrequencyNoiseHScale = 4.0f;
 	glm::vec3 cloudColor = glm::vec3(1, 1, 1);
 
-	glm::vec3 zenitColor = glm::vec3(0.3f, 1.0f, 1.0f);
-	glm::vec3 horizonColor = glm::vec3(0.2f, 0.3f, 1.0f);
+	glm::vec3 zenitColor = glm::vec3(0.35f, 1.0f, 1.0f);
+	glm::vec3 horizonColor = glm::vec3(0.7f, 0.3f, 1.0f);
 
 	glm::vec3 lightColor = glm::vec3(1, 1, 1);
-	float lightFactor = 1.0f;
+	float lightFactor = 0.95f;
 	glm::vec3 realLightColor = glm::vec3(1, 1, 1);
 	glm::vec3 lightDirection = glm::vec3(1, 1, 0.2);
 
@@ -182,6 +182,16 @@ void VolumetricClouds::SetUniforms()
 
 	glm::mat4 pV = Camera::cam->GetProjectionMatrix() * Camera::cam->GetViewMatrix();
 	glUniformMatrix4fv(uProjView, 1, GL_FALSE, &(pV[0][0]));
+
+	float time = Runner::TotalTimeInSeconds;
+	glUniform1f(uTime, time);
+	float incr = 0.015f;
+	float rotation = time * incr;
+	if (rotation > 360.0) {
+		rotation -= 360;
+	}
+	glm::mat4 rot = glm::rotate(glm::mat4(1.0), rotation, glm::vec3(0, 1, 0));
+	glUniformMatrix4fv(uRotation, 1, GL_FALSE, &(rot[0][0]));
 
 
 	glUniform3fv(uZenitColor, 1,&zenitColor[0]);
@@ -204,7 +214,12 @@ void VolumetricClouds::SetUniforms()
 	glUniform1f(uHighFreqNoiseHScale, highFrequencyNoiseHScale);
 
 	glUniform1f(uCloudType, cloudType);
-	glUniform1f(uCoverageMultiplier, coverageMultiplier);
+
+
+	glUniform1f(uCoverageMultiplier, coverageController);
+
+	// set to 0.0 to disable evolution, 1.0 to enable.
+	glUniform1f(uEvolveClouds, evolveClouds);
 
 }
 Mesh* VolumetricClouds::createQuad() {

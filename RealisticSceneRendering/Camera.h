@@ -22,7 +22,7 @@ enum Camera_Movement {
 // Default camera values
 const float YAW = -90.0f;
 const float PITCH = -30.0f;
-const float SPEED = 200.0f;
+const float SPEED = 50.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
@@ -76,7 +76,7 @@ public:
     glm::mat4 GetProjectionMatrix() {
         float fovyRad = (float)(45.0 / 180.0) * M_PI;
         float aspectRatio = 1920.0f / 1080.0f;
-        return glm::perspective(fovyRad, aspectRatio, 1.0f, 100000.0f);
+        return glm::perspective(fovyRad, aspectRatio, 1.0f, 10000.0f);
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -99,10 +99,14 @@ public:
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Pitch += xoffset;
-        Yaw += yoffset;
-        
-        // update Front, Right and Up Vectors using the updated Euler angles
+        Yaw += xoffset;
+        Pitch += yoffset;
+
+        if (Pitch > 89.0f)
+            Pitch = 89.0f;
+        if (Pitch < -89.0f)
+            Pitch = -89.0f;
+
         updateCameraVectors();
     }
 

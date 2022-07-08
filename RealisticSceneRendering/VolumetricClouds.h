@@ -6,6 +6,7 @@
 class VolumetricClouds : public SceneObject
 {
 public:
+
 	void Start();
 	void Update();
 	void generateNoiseTextures();
@@ -13,6 +14,9 @@ public:
 	unsigned int generateTexture3D(int w, int h, int d);
 	void SetUniforms();
 	void CacheUniformLocations();
+
+	static float evolveClouds;
+	static float coverageController;
 
 private:
 	Mesh* quad;
@@ -42,4 +46,7 @@ private:
 	GLuint uHorizonColor;
 	GLuint uInvView;
 	GLuint uProjView;
+	GLuint uTime;
+	GLuint uRotation;
+	GLuint uEvolveClouds;
 };

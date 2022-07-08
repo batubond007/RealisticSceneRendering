@@ -5,8 +5,8 @@ class InputController {
 public:
     static bool isMovingForward;
     static bool isMovingBackward;
-	static float yawChange;
-	static float pitchChange;
+	static float xoffset;
+	static float yoffset;
 	static float speed;
 
     static void SetCallbacks();
