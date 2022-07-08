@@ -22,7 +22,7 @@ enum Camera_Movement {
 // Default camera values
 const float YAW = -90.0f;
 const float PITCH = -30.0f;
-const float SPEED = 50.0f;
+const float SPEED = 200.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
@@ -99,14 +99,10 @@ public:
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Yaw += xoffset;
-        Pitch += yoffset;
-
-        if (Pitch > 89.0f)
-            Pitch = 89.0f;
-        if (Pitch < -89.0f)
-            Pitch = -89.0f;
-
+        Pitch += xoffset;
+        Yaw += yoffset;
+        
+        // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
     }
 

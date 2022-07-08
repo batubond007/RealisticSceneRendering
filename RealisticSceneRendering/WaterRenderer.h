@@ -52,7 +52,7 @@ public:
 		Camera::cam->InvertCam();
 
 		bindFrameBuffer(reflectionFrameBuffer, 1920, 1080);
-		TerrainRenderer::terrainShader->setVec4("clipPlane", glm::vec4(0, 1, 0, 0));
+		TerrainRenderer::terrainShader->setVec4("clipPlane", glm::vec4(0, 1, 0, 0.1f));
 		Runner::DrawSceneWOWater();
 		unbindFrameBuffer();
 
@@ -64,6 +64,8 @@ public:
 		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LEQUAL);
 		glDepthRange(0.0f, 1.0f);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		waterShader->use();
 		// Set Uniforms
@@ -74,6 +76,7 @@ public:
 		waterShader->setSampler2D("reflectionTex", reflectionTexture, 1);
 		waterShader->setSampler2D("dudvMap", dudvMap, 2);
 		waterShader->setSampler2D("normalMap", normalMap, 3);
+		waterShader->setSampler2D("depthTexture", refractionDepthTexture, 4);
 		waterShader->setFloat("MoveFactor", MoveFactor);
 		waterShader->setVec3("eyePos", Camera::cam->Position);
 		quad->Draw(*waterShader);
@@ -85,6 +88,8 @@ public:
 		glDeleteFramebuffers(1, &refractionFrameBuffer);
 		glDeleteTextures(1, &refractionTexture);
 		glDeleteTextures(1, &refractionDepthTexture);
+
+		glDisable(GL_BLEND);
 
 	}
 

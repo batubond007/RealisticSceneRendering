@@ -14,7 +14,7 @@ out vec3 toEye;
 out vec3 fromLight;
 
 const float tiling = 4.0;
-const vec3 lightPos = vec3(20, 50, 0);
+const vec3 lightPos = vec3(100, 500, 100);
 
 void main(void)
 {

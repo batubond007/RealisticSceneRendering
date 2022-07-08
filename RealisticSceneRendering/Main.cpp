@@ -5,7 +5,7 @@
 
 int main() {
 	Runner runner;
-	//VolumetricClouds* clouds = new VolumetricClouds();
+	VolumetricClouds* clouds = new VolumetricClouds();
 	TerrainRenderer *terrain = new TerrainRenderer();
 	WaterRenderer* water = new WaterRenderer();
 	runner.run();
